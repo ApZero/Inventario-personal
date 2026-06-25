@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es-PY">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EDE6D8">
+<title>Inventario</title>
+<meta name="description" content="Inventario personal: qué tenés, cuánto pagaste y cuánto te cuesta por mes.">
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">📦</span>
+      <span class="brand-text">Inventario</span>
+    </div>
+    <button id="btn-add" class="fab" title="Agregar objeto" aria-label="Agregar objeto">+</button>
+  </header>
+
+  <!-- ===================== INICIO ===================== -->
+  <main id="view-inicio" class="view">
+
+    <section class="kpi-row" id="kpi-row"></section>
+
+    <section class="toolbar">
+      <input type="search" id="search-input" placeholder="Buscar objeto, marca, lugar…" class="search-input">
+      <select id="sort-select" class="sort-select">
+        <option value="costoMensualDesc">Costo mensual ↓</option>
+        <option value="costoMensualAsc">Costo mensual ↑</option>
+        <option value="fechaDesc">Más recientes</option>
+        <option value="fechaAsc">Más antiguos</option>
+        <option value="precioDesc">Precio ↓</option>
+        <option value="alfabetico">Alfabético</option>
+      </select>
+    </section>
+
+    <section class="chip-row" id="status-chip-row">
+      <button class="chip active" data-status="activos">En uso</button>
+      <button class="chip" data-status="retirados">Retirados</button>
+      <button class="chip" data-status="todos">Todos</button>
+    </section>
+
+    <section class="chip-row chip-row-cats" id="category-chip-row"></section>
+
+    <section id="item-list" class="item-list"></section>
+    <p id="empty-state" class="empty-state hidden">No encontramos objetos con esos filtros.</p>
+
+  </main>
+
+  <!-- ===================== CATEGORÍAS ===================== -->
+  <main id="view-categorias" class="view hidden">
+    <div class="section-head">
+      <h2>Categorías</h2>
+      <button id="btn-add-categoria" class="btn-secondary">+ Nueva</button>
+    </div>
+    <p class="hint">Tocá una categoría para editarla. Si borrás una, sus objetos pasan a "Sin categoría".</p>
+    <div id="category-list" class="category-list"></div>
+  </main>
+
+  <!-- ===================== ESTADÍSTICAS ===================== -->
+  <main id="view-estadisticas" class="view hidden">
+    <h2>Estadísticas</h2>
+
+    <section class="kpi-row" id="kpi-row-stats"></section>
+
+    <div class="stat-block">
+      <h3>Costo mensual por categoría <span class="hint-inline">(objetos en uso)</span></h3>
+      <div class="chart-wrap chart-wrap-donut"><canvas id="chart-categoria"></canvas></div>
+    </div>
+
+    <div class="stat-block">
+      <h3>Lo que más te cuesta por mes</h3>
+      <div class="chart-wrap"><canvas id="chart-top"></canvas></div>
+    </div>
+
+    <div class="stat-block">
+      <h3>Inversión por año de compra</h3>
+      <div class="chart-wrap"><canvas id="chart-anual"></canvas></div>
+    </div>
+
+    <div class="stat-block">
+      <h3>Historial de objetos retirados</h3>
+      <div id="retired-list" class="retired-list"></div>
+    </div>
+  </main>
+
+  <!-- ===================== BACKUP ===================== -->
+  <main id="view-backup" class="view hidden">
+    <h2>Copia de seguridad</h2>
+    <p class="hint">Todo se guarda únicamente en este teléfono. Hacé una copia de vez en cuando para no perder nada.</p>
+
+    <div class="backup-card">
+      <h3>Exportar</h3>
+      <p class="hint">Excel: compatible con tu planilla original, fácil de revisar en la PC.<br>JSON: copia exacta, ideal para restaurar todo sin pérdidas.</p>
+      <div class="backup-actions">
+        <button id="btn-export-excel" class="btn-primary">Exportar Excel</button>
+        <button id="btn-export-json" class="btn-secondary">Exportar JSON</button>
+      </div>
+    </div>
+
+    <div class="backup-card">
+      <h3>Importar</h3>
+      <p class="hint">Elegí un archivo Excel o JSON exportado antes.</p>
+      <div class="backup-actions">
+        <label class="btn-primary file-btn">Importar Excel<input type="file" id="input-import-excel" accept=".xlsx,.xls" hidden></label>
+        <label class="btn-secondary file-btn">Importar JSON<input type="file" id="input-import-json" accept=".json" hidden></label>
+      </div>
+    </div>
+
+    <div class="backup-card backup-card-danger">
+      <h3>Borrar todo</h3>
+      <p class="hint">Elimina todos los objetos y categorías de este teléfono. No se puede deshacer (hacé una copia antes).</p>
+      <button id="btn-wipe" class="btn-danger">Borrar todos los datos</button>
+    </div>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-view="inicio"><span class="tab-icon">🏠</span><span>Inicio</span></button>
+    <button class="tab" data-view="categorias"><span class="tab-icon">🏷️</span><span>Categorías</span></button>
+    <button class="tab" data-view="estadisticas"><span class="tab-icon">📊</span><span>Estadísticas</span></button>
+    <button class="tab" data-view="backup"><span class="tab-icon">💾</span><span>Backup</span></button>
+  </nav>
+
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+<script src="js/seed.js"></script>
+<script src="js/db.js"></script>
+<script src="js/excel.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/forms.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
