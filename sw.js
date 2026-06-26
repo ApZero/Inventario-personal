@@ -1,61 +1,59 @@
-// Service worker de Vestidor — estrategia stale-while-revalidate.
-// IMPORTANTE: subí CACHE_VERSION cada vez que publiques cambios,
-// si no el navegador puede seguir sirviendo archivos viejos desde caché.
-const CACHE_VERSION = "v2";
-const CACHE_NAME = `vestidor-${CACHE_VERSION}`;
+// sw.js — cachea los archivos de la app para que funcione sin conexión.
+// IMPORTANTE: subí el número de versión (CACHE_NAME) cada vez que edites
+// la app, o el teléfono va a seguir usando la versión vieja en caché.
 
-const PRECACHE_URLS = [
-  "./",
-  "./index.html",
-  "./style.css",
-  "./app.js",
-  "./seed-data.js",
-  "./manifest.json",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/icon-512-maskable.png"
+const CACHE_NAME = 'inventario-v1';
+
+const ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './css/styles.css',
+  './js/seed.js',
+  './js/db.js',
+  './js/excel.js',
+  './js/charts.js',
+  './js/forms.js',
+  './js/ui.js',
+  './js/app.js',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
-self.addEventListener("install", (event) => {
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(
-        names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
-      )
-    )
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  if (req.method !== "GET") return;
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+
+  // Las librerías de CDN (SheetJS, Chart.js): siempre intenta la red primero,
+  // y si no hay conexión, no rompe la app (solo fallarán exportar/gráficos).
+  if (event.request.url.startsWith('http') && !event.request.url.includes(self.location.origin)) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+    return;
+  }
 
   event.respondWith(
-    caches.open(CACHE_NAME).then(async (cache) => {
-      const cached = await cache.match(req);
-      const networkFetch = fetch(req)
-        .then((res) => {
-          if (res && res.status === 200) cache.put(req, res.clone());
-          return res;
-        })
-        .catch(() => null);
-
-      // stale-while-revalidate: devolvé lo cacheado de inmediato si existe,
-      // y actualizá la caché en segundo plano para la próxima vez.
-      if (cached) {
-        networkFetch; // se ejecuta en background, no se espera
-        return cached;
-      }
-      const fresh = await networkFetch;
-      return fresh || cached || Response.error();
+    caches.match(event.request).then(cached => {
+      if (cached) return cached;
+      return fetch(event.request).then(response => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        return response;
+      }).catch(() => caches.match('./index.html'));
     })
   );
 });
