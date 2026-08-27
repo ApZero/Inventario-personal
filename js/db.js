@@ -209,22 +209,46 @@ const Calc = (() => {
     const activo = !item.finDeUso;
     let dias = 0;
     if (fechaCompra) {
+      // Retirado: el contador se congela en la fecha de fin de uso.
+      // En uso: sigue creciendo con el tiempo (se recalcula en cada apertura).
       const referencia = fechaFin || todayUTC();
       dias = Math.max(diffDays(referencia, fechaCompra), 0);
     }
-    const diasParaCalculo = Math.max(dias, 1); // evita división por cero el día 0
-    const costoDiario = item.precio / diasParaCalculo;
-    const costoMensual = item.precio / (diasParaCalculo / 30);
-    const costoAnual = costoMensual * 12;
-    let costoMensualNeto = null;
-    if (!activo && item.precioVenta != null) {
-      const neto = Math.max(item.precio - item.precioVenta, 0);
-      costoMensualNeto = neto / (diasParaCalculo / 30);
-    }
+    // Para items de menos de 30 días, el denominador se fija en 1 mes.
+    // Sin esto, un item comprado hoy tendría un costo mensual de precio×30.
+    // Con el piso en 1 mes, el costo máximo es el precio de compra (≤1 mes de uso).
+    const meses = Math.max(dias / 30, 1);
+    const nuevo = dias < 30; // flag para mostrar badge en la tarjeta
+
+    // Costo bruto: sobre el precio de compra completo, siempre.
+    const costoMensualBruto = Number(item.precio) / meses;
+
+    // Si hay precio de venta se descuenta del precio de compra.
+    // Eso es lo que realmente perdiste, y es el número que se muestra en todos lados.
+    const vendido = !activo && item.precioVenta != null && item.precioVenta !== '';
+    const netoGs = vendido
+      ? Math.max(Number(item.precio) - Number(item.precioVenta), 0)
+      : Number(item.precio);
+    const costoMensual = netoGs / meses;
+
     return {
-      dias, costoDiario, costoMensual, costoAnual, costoMensualNeto, activo,
+      dias, meses, nuevo,
+      costoMensual,        // neto cuando hay precio de venta, bruto en otro caso
+      costoMensualBruto,   // siempre sobre el precio de compra (para referencia)
+      vendido, activo,
       antiguedadTexto: humanizeDays(dias)
     };
+  }
+
+  // Dado un objeto y un costo mensual objetivo, devuelve a qué precio venderlo.
+  // diasAlVender: si no se pasa, usa los días actuales del objeto.
+  function suggestSalePrice(item, targetMonthly, diasAlVender) {
+    const d = derive(item);
+    const dias = diasAlVender != null ? diasAlVender : d.dias;
+    // Mismo piso que en derive: mínimo 1 mes.
+    const meses = Math.max(dias / 30, 1);
+    const netoDeseado = targetMonthly * meses;
+    return Math.max(Math.round(Number(item.precio) - netoDeseado), 0);
   }
 
   function humanizeDays(dias) {
@@ -255,5 +279,5 @@ const Calc = (() => {
     return t.toISOString().slice(0, 10);
   }
 
-  return { derive, formatGs, formatDate, parseLocalDate, todayUTC, diffDays, humanizeDays, todayInputValue };
+  return { derive, suggestSalePrice, formatGs, formatDate, parseLocalDate, todayUTC, diffDays, humanizeDays, todayInputValue };
 })();

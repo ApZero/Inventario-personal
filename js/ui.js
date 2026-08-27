@@ -124,6 +124,17 @@ const UI = (() => {
       bottomInfo = `Usado ${d.antiguedadTexto} · retirado ${Calc.formatDate(it.finDeUso)}${it.motivo ? ' · ' + esc(it.motivo) : ''}`;
     }
 
+    // Label secundario del costo: neto o nuevo
+    let costoLabel = 'por mes';
+    let costoSecundario = '';
+    if (d.vendido) {
+      costoLabel = 'por mes (neto)';
+      costoSecundario = `<div class="item-cost-secondary">bruto ${Calc.formatGs(d.costoMensualBruto)}</div>`;
+    } else if (d.nuevo && d.activo) {
+      costoLabel = 'por mes';
+      costoSecundario = `<div class="item-cost-nuevo">reciente · menos de 30 días</div>`;
+    }
+
     return `
       <div class="item-card ${d.activo ? '' : 'is-retired'}" data-id="${it.id}">
         <div class="item-top">
@@ -134,7 +145,8 @@ const UI = (() => {
           </div>
           <div class="item-cost">
             <div class="item-cost-value">${Calc.formatGs(d.costoMensual)}</div>
-            <div class="item-cost-label">por mes</div>
+            <div class="item-cost-label">${costoLabel}</div>
+            ${costoSecundario}
           </div>
         </div>
         <div class="cost-bar-track"><div class="cost-bar-fill" style="width:${widthPct}%;background:${color}"></div></div>
@@ -240,8 +252,9 @@ const UI = (() => {
         .sort((a, b) => (b.it.finDeUso || '').localeCompare(a.it.finDeUso || ''))
         .map(({ it, d }) => {
           let extra = '';
-          if (it.precioVenta != null) {
-            extra = ` · recuperaste ${Calc.formatGs(it.precioVenta)} (costo neto ${Calc.formatGs(d.costoMensualNeto)}/mes)`;
+          if (d.vendido) {
+            // costoMensual ya ES el neto cuando hay precio de venta
+            extra = ` · recuperaste ${Calc.formatGs(it.precioVenta)} · costo neto ${Calc.formatGs(d.costoMensual)}/mes (bruto ${Calc.formatGs(d.costoMensualBruto)}/mes)`;
           }
           return `
             <div class="retired-row">
