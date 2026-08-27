@@ -444,3 +444,81 @@ datalist { display: none; }
   animation: toast-in 0.15s ease-out;
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* ===================== Sugeridor de precio de venta ===================== */
+.sugeridor-block {
+  background: #F2E8DC;
+  border: 1px solid #D9C9B0;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-top: 14px;
+}
+.sugeridor-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.sugeridor-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.sug-target-input {
+  width: 90px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  background: var(--surface-raised);
+}
+.sugeridor-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.sugeridor-result strong {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--accent-low);
+}
+.sug-apply-btn {
+  border: 1px solid var(--accent-primary);
+  background: transparent;
+  color: var(--accent-primary);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.sug-apply-btn:active { background: #F2E8DC; }
+.sugeridor-detail {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 6px;
+}
+
+/* ===================== Item card — costo secundario ===================== */
+.item-cost-secondary {
+  font-size: 10px;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  text-decoration: line-through;
+  margin-top: 1px;
+}
+.item-cost-nuevo {
+  font-size: 10px;
+  color: var(--accent-mid);
+  margin-top: 2px;
+  font-style: italic;
+}
