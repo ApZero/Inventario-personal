@@ -122,7 +122,7 @@ const ItemForm = (() => {
           <label class="field-label">Usos estimados <span class="field-hint">(opcional — activa el costo por uso)</span></label>
           <div class="uso-row">
             <input type="number" name="usosFrequencia" id="f-usos-freq"
-              min="0.1" step="0.5" inputmode="decimal"
+              min="0" step="any" inputmode="decimal"
               value="${item.usosFrequencia || ''}"
               placeholder="Ej: 3"
               class="uso-freq-input">
