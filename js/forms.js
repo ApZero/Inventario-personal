@@ -71,7 +71,8 @@ const ItemForm = (() => {
     const isEdit = !!existing;
     const item = existing || {
       tipo: '', marca: '', modelo: '', categoriaId: DB.getCategories()[0]?.id || 'sin-categoria',
-      fecha: Calc.todayInputValue(), lugar: '', precio: '', finDeUso: null, motivo: '', precioVenta: '', notas: ''
+      fecha: Calc.todayInputValue(), lugar: '', precio: '', finDeUso: null, motivo: '',
+      precioVenta: '', notas: '', usosFrequencia: '', usosPeriodo: 'semana'
     };
     const enUso = !item.finDeUso;
 
@@ -81,6 +82,7 @@ const ItemForm = (() => {
         <button class="modal-close" data-act="close">×</button>
       </div>
       <form id="item-form">
+
         <div class="form-group">
           <label class="field-label">Objeto <span class="req">*</span></label>
           <input type="text" name="tipo" required value="${esc(item.tipo)}" placeholder="Ej: Silla, Smartphone, Heladera…">
@@ -111,7 +113,26 @@ const ItemForm = (() => {
         </div>
         <div class="form-group">
           <label class="field-label">Precio (₲) <span class="req">*</span></label>
-          <input type="number" name="precio" required min="0" step="1" inputmode="numeric" value="${item.precio || ''}">
+          <input type="number" name="precio" id="f-precio" required min="0" step="1" inputmode="numeric" value="${item.precio || ''}">
+        </div>
+
+        <div id="f-preview" class="form-preview"></div>
+
+        <div class="form-group">
+          <label class="field-label">Usos estimados <span class="field-hint">(opcional — activa el costo por uso)</span></label>
+          <div class="uso-row">
+            <input type="number" name="usosFrequencia" id="f-usos-freq"
+              min="0.1" step="0.5" inputmode="decimal"
+              value="${item.usosFrequencia || ''}"
+              placeholder="Ej: 3"
+              class="uso-freq-input">
+            <span class="uso-sep">veces por</span>
+            <select name="usosPeriodo" id="f-usos-periodo" class="uso-periodo-select">
+              <option value="semana" ${(item.usosPeriodo||'semana')==='semana'?'selected':''}>semana</option>
+              <option value="mes"    ${item.usosPeriodo==='mes'   ?'selected':''}>mes</option>
+              <option value="año"    ${item.usosPeriodo==='año'   ?'selected':''}>año</option>
+            </select>
+          </div>
         </div>
 
         <div class="toggle-row">
@@ -130,27 +151,15 @@ const ItemForm = (() => {
             </div>
             <div class="form-group">
               <label class="field-label">Precio de venta (₲)</label>
-              <input type="number" id="f-precio-venta" name="precioVenta" min="0" step="1" value="${item.precioVenta || ''}" placeholder="Opcional">
+              <input type="number" id="f-precio-venta" name="precioVenta" min="0" step="1"
+                value="${item.precioVenta || ''}" placeholder="Opcional">
             </div>
           </div>
           <div class="form-group">
             <label class="field-label">Motivo</label>
-            <input type="text" name="motivo" list="motivo-list" value="${esc(item.motivo)}" placeholder="Vendido, donado, roto…">
+            <input type="text" name="motivo" list="motivo-list" value="${esc(item.motivo)}"
+              placeholder="Vendido, donado, roto…">
             <datalist id="motivo-list">${MOTIVOS.map(m => `<option value="${m}">`).join('')}</datalist>
-          </div>
-
-          <div class="sugeridor-block">
-            <div class="sugeridor-title">💡 Sugeridor de precio de venta</div>
-            <div class="sugeridor-row">
-              <span>Para que te cueste</span>
-              <input type="number" id="sug-target" value="5000" min="0" step="500" inputmode="numeric" class="sug-target-input">
-              <span>₲/mes</span>
-            </div>
-            <div class="sugeridor-result">
-              Vendelo a: <strong id="sug-price">—</strong>
-              <button type="button" id="sug-apply" class="sug-apply-btn">Usar este precio</button>
-            </div>
-            <div id="sug-detail" class="sugeridor-detail"></div>
           </div>
         </div>
 
@@ -159,10 +168,46 @@ const ItemForm = (() => {
           <textarea name="notas" placeholder="Garantía, número de serie, detalles…">${esc(item.notas)}</textarea>
         </div>
 
+        <!-- Sugeridor: siempre visible en cuanto hay precio y fecha -->
+        <div class="sugeridor-block" id="sugeridor-block">
+          <div class="sugeridor-title">💡 Precio de venta sugerido</div>
+
+          <div class="sug-section">
+            <div class="sug-section-label">Por costo mensual</div>
+            <div class="sugeridor-row">
+              <span>Para que cueste</span>
+              <input type="number" id="sug-target-mes" value="5000" min="0" step="500"
+                inputmode="numeric" class="sug-target-input">
+              <span>₲/mes</span>
+            </div>
+            <div class="sugeridor-result">
+              Vendelo a: <strong id="sug-price-mes">—</strong>
+              <button type="button" id="sug-apply-mes" class="sug-apply-btn">Usar</button>
+            </div>
+          </div>
+
+          <div class="sug-section" id="sug-section-uso">
+            <div class="sug-section-label">Por costo por uso <span id="sug-uso-hint" class="sug-uso-hint"></span></div>
+            <div class="sugeridor-row">
+              <span>Para que cueste</span>
+              <input type="number" id="sug-target-uso" value="500" min="0" step="100"
+                inputmode="numeric" class="sug-target-input">
+              <span>₲/uso</span>
+            </div>
+            <div class="sugeridor-result">
+              Vendelo a: <strong id="sug-price-uso">—</strong>
+              <button type="button" id="sug-apply-uso" class="sug-apply-btn">Usar</button>
+            </div>
+          </div>
+
+          <div id="sug-detail" class="sugeridor-detail"></div>
+        </div>
+
         <div class="modal-actions">
           ${isEdit ? '<button type="button" class="btn-danger" data-act="delete">Eliminar</button>' : ''}
           <button type="submit" class="btn-primary">${isEdit ? 'Guardar cambios' : 'Agregar objeto'}</button>
         </div>
+
       </form>
     `, {
       onMount: overlay => {
@@ -174,94 +219,156 @@ const ItemForm = (() => {
           updateSugeridor();
         });
 
-        // ---- Sugeridor de precio de venta ----
+        // ---- Sugeridor ----
+        function getDias() {
+          const fechaVal  = overlay.querySelector('input[name="fecha"]')?.value;
+          const finDeUso  = overlay.querySelector('#f-fin-de-uso')?.value;
+          const enUsoNow  = toggle.checked;
+          if (!fechaVal) return null;
+          const dCompra   = Calc.parseLocalDate(fechaVal);
+          const dRef      = Calc.parseLocalDate(enUsoNow ? Calc.todayInputValue() : (finDeUso || Calc.todayInputValue()));
+          return Math.max(Calc.diffDays(dRef, dCompra), 0);
+        }
+
+        function getUsosEstimados(dias) {
+          const freq   = parseFloat(overlay.querySelector('#f-usos-freq')?.value) || 0;
+          const period = overlay.querySelector('#f-usos-periodo')?.value || 'semana';
+          if (!freq || dias == null) return null;
+          const periodoDias = { semana: 7, mes: 30, año: 365 }[period] || 7;
+          return Math.max(Math.round(freq * (dias / periodoDias)), 1);
+        }
+
         function updateSugeridor() {
-          const sugBlock = overlay.querySelector('.sugeridor-block');
-          if (!sugBlock) return;
-          const precioEl = overlay.querySelector('input[name="precio"]');
-          const finDeUsoEl = overlay.querySelector('#f-fin-de-uso');
-          const fechaEl = overlay.querySelector('input[name="fecha"]');
-          const targetEl = overlay.querySelector('#sug-target');
-          const priceEl = overlay.querySelector('#sug-price');
-          const detailEl = overlay.querySelector('#sug-detail');
+          const precio      = Number(overlay.querySelector('#f-precio')?.value) || 0;
+          const priceMesEl  = overlay.querySelector('#sug-price-mes');
+          const priceUsoEl  = overlay.querySelector('#sug-price-uso');
+          const detailEl    = overlay.querySelector('#sug-detail');
+          const usoHint     = overlay.querySelector('#sug-uso-hint');
+          const applyMes    = overlay.querySelector('#sug-apply-mes');
+          const applyUso    = overlay.querySelector('#sug-apply-uso');
 
-          const precio = Number(precioEl?.value) || 0;
-          const fechaCompra = fechaEl?.value;
-          const finDeUso = finDeUsoEl?.value || Calc.todayInputValue();
-          const target = Number(targetEl?.value) || 0;
-
-          if (!precio || !fechaCompra) {
-            priceEl.textContent = '—';
-            detailEl.textContent = '';
+          if (!precio || !overlay.querySelector('input[name="fecha"]')?.value) {
+            priceMesEl.textContent = '—';
+            priceUsoEl.textContent = '—';
+            detailEl.textContent   = '';
             return;
           }
 
-          // days between purchase and retirement/today
-          const dFecha = Calc.parseLocalDate(fechaCompra);
-          const dFin = Calc.parseLocalDate(finDeUso);
-          const dias = Math.max(Calc.diffDays(dFin, dFecha), 1);
-          const meses = dias / 30;
+          const dias  = getDias();
+          const meses = Math.max(dias / 30, 1);
 
-          const sugerido = Math.max(Math.round(precio - target * meses), 0);
-          priceEl.textContent = Calc.formatGs(sugerido);
+          // -- Por mes --
+          const targetMes  = Number(overlay.querySelector('#sug-target-mes')?.value) || 0;
+          const sugMes     = Math.max(Math.round(precio - targetMes * meses), 0);
+          priceMesEl.textContent = Calc.formatGs(sugMes);
 
-          const costoNeto = Math.max(precio - sugerido, 0) / meses;
-          detailEl.textContent = `(${dias} días de uso · costo neto real: ${Calc.formatGs(costoNeto)}/mes)`;
-        }
-
-        const sugTargetInput = overlay.querySelector('#sug-target');
-        const finDeUsoInput = overlay.querySelector('#f-fin-de-uso');
-        const precioInput = overlay.querySelector('input[name="precio"]');
-        if (sugTargetInput) {
-          sugTargetInput.addEventListener('input', updateSugeridor);
-          finDeUsoInput?.addEventListener('input', updateSugeridor);
-          precioInput?.addEventListener('input', updateSugeridor);
-          overlay.querySelector('input[name="fecha"]')?.addEventListener('input', updateSugeridor);
-        }
-
-        overlay.querySelector('#sug-apply')?.addEventListener('click', () => {
-          const priceText = overlay.querySelector('#sug-price')?.textContent;
-          if (!priceText || priceText === '—') return;
-          const numericStr = priceText.replace(/[^\d]/g, '');
-          const ventaInput = overlay.querySelector('#f-precio-venta');
-          if (ventaInput) {
-            ventaInput.value = numericStr;
-            ventaInput.focus();
+          // -- Por uso --
+          const usos = getUsosEstimados(dias);
+          if (usos) {
+            usoHint.textContent = `(${usos} usos estimados)`;
+            const targetUso = Number(overlay.querySelector('#sug-target-uso')?.value) || 0;
+            const sugUso    = Math.max(Math.round(precio - targetUso * usos), 0);
+            priceUsoEl.textContent = Calc.formatGs(sugUso);
+            applyUso.disabled = false;
+          } else {
+            usoHint.textContent  = '— agregá frecuencia de uso arriba';
+            priceUsoEl.textContent = '—';
+            applyUso.disabled = true;
           }
+
+          // Detail line
+          const parts = [`${dias} días de uso`];
+          if (usos) parts.push(`~${usos} usos totales`);
+          detailEl.textContent = parts.join(' · ');
+        }
+
+        // ---- Preview en vivo de costos actuales ----
+        function updatePreview() {
+          const previewEl = overlay.querySelector('#f-preview');
+          if (!previewEl) return;
+          const precio  = Number(overlay.querySelector('#f-precio')?.value) || 0;
+          const fechaV  = overlay.querySelector('input[name="fecha"]')?.value;
+          if (!precio || !fechaV) { previewEl.innerHTML = ''; return; }
+
+          const dias    = getDias();
+          const meses   = Math.max(dias / 30, 1);
+          const enUsoNow = overlay.querySelector('#toggle-en-uso')?.checked;
+
+          // Precio de venta ingresado (puede estar en retiro-fields)
+          const pvRaw   = overlay.querySelector('#f-precio-venta')?.value;
+          const pv      = (!enUsoNow && pvRaw !== '' && pvRaw != null) ? Number(pvRaw) : null;
+          const netoGs  = (pv != null) ? Math.max(precio - pv, 0) : precio;
+          const costoMes = netoGs / meses;
+
+          const usos    = getUsosEstimados(dias);
+          const cpu     = usos ? netoGs / usos : null;
+
+          const chips = [];
+          chips.push(`<span class="prev-age">${Calc.humanizeDays(dias)}</span>`);
+          chips.push(`<span class="prev-cost">${Calc.formatGs(costoMes)}<span class="prev-unit">/mes${pv != null ? ' neto' : ''}</span></span>`);
+          if (cpu != null) {
+            const periodoLabel = { semana: 'sem', mes: 'mes', año: 'año' }[overlay.querySelector('#f-usos-periodo')?.value] || 'sem';
+            chips.push(`<span class="prev-cpu">${Calc.formatGs(cpu)}<span class="prev-unit">/uso · ${overlay.querySelector('#f-usos-freq')?.value}×/${periodoLabel}</span></span>`);
+          }
+          previewEl.innerHTML = chips.join('<span class="prev-sep">·</span>');
+        }
+
+        // Wire all inputs that affect the sugeridor and preview
+        ['input[name="fecha"]', '#f-fin-de-uso', '#f-precio', '#f-precio-venta',
+         '#f-usos-freq', '#f-usos-periodo',
+         '#sug-target-mes', '#sug-target-uso'].forEach(sel => {
+          overlay.querySelector(sel)?.addEventListener('input', () => { updateSugeridor(); updatePreview(); });
         });
+        overlay.querySelector('#toggle-en-uso')?.addEventListener('change', () => { updateSugeridor(); updatePreview(); });
 
-        // Run once on open so it shows up immediately for existing retired items
+        function applyPrice(sugEl) {
+          const txt = overlay.querySelector(sugEl)?.textContent;
+          if (!txt || txt === '—') return;
+          const ventaInput = overlay.querySelector('#f-precio-venta');
+          if (!ventaInput) return;
+          ventaInput.value = txt.replace(/[^\d]/g, '');
+          // Open retiro section if it was hidden
+          if (toggle.checked) {
+            toggle.checked = false;
+            retiroFields.classList.remove('hidden');
+          }
+          ventaInput.focus();
+        }
+        overlay.querySelector('#sug-apply-mes')?.addEventListener('click', () => applyPrice('#sug-price-mes'));
+        overlay.querySelector('#sug-apply-uso')?.addEventListener('click', () => applyPrice('#sug-price-uso'));
+
         updateSugeridor();
+        updatePreview();
 
+        // ---- Submit ----
         const form = overlay.querySelector('#item-form');
         form.addEventListener('submit', e => {
           e.preventDefault();
-          const fd = new FormData(form);
-          const enUsoNow = toggle.checked;
-          const finDeUsoValue = enUsoNow ? null : (fd.get('finDeUso') || Calc.todayInputValue());
+          const fd        = new FormData(form);
+          const enUsoNow  = toggle.checked;
+          const finDeUsoV = enUsoNow ? null : (fd.get('finDeUso') || Calc.todayInputValue());
+          const freqRaw   = fd.get('usosFrequencia');
           const data = {
-            tipo: fd.get('tipo'),
-            marca: fd.get('marca'),
-            modelo: fd.get('modelo'),
-            categoriaId: fd.get('categoriaId'),
-            fecha: fd.get('fecha'),
-            lugar: fd.get('lugar'),
-            precio: fd.get('precio'),
-            finDeUso: finDeUsoValue,
-            motivo: enUsoNow ? '' : fd.get('motivo'),
-            precioVenta: enUsoNow ? null : fd.get('precioVenta'),
-            notas: fd.get('notas')
+            tipo:           fd.get('tipo'),
+            marca:          fd.get('marca'),
+            modelo:         fd.get('modelo'),
+            categoriaId:    fd.get('categoriaId'),
+            fecha:          fd.get('fecha'),
+            lugar:          fd.get('lugar'),
+            precio:         Number(fd.get('precio')),
+            finDeUso:       finDeUsoV,
+            motivo:         enUsoNow ? '' : fd.get('motivo'),
+            precioVenta:    enUsoNow ? null : (fd.get('precioVenta') !== '' ? Number(fd.get('precioVenta')) : null),
+            notas:          fd.get('notas'),
+            usosFrequencia: freqRaw !== '' && freqRaw != null ? Number(freqRaw) : null,
+            usosPeriodo:    fd.get('usosPeriodo') || 'semana'
           };
-          if (!data.tipo.trim() || !data.fecha || data.precio === '') {
+          if (!data.tipo.trim() || !data.fecha || !data.precio) {
             Toast.show('Completá los campos obligatorios');
             return;
           }
           if (isEdit) {
-            DB.updateItem(existing.id, {
-              ...data,
-              precio: Number(data.precio),
-              precioVenta: data.precioVenta != null && data.precioVenta !== '' ? Number(data.precioVenta) : null
-            });
+            DB.updateItem(existing.id, data);
             Toast.show('Objeto actualizado');
           } else {
             DB.addItem(data);
@@ -271,10 +378,14 @@ const ItemForm = (() => {
           UI.refresh();
         });
 
+        // ---- Delete ----
         const deleteBtn = overlay.querySelector('[data-act="delete"]');
         if (deleteBtn) {
           deleteBtn.addEventListener('click', async () => {
-            const ok = await Modal.confirm(`¿Eliminar "${existing.tipo}"? Esta acción no se puede deshacer.`, { danger: true, confirmLabel: 'Eliminar' });
+            const ok = await Modal.confirm(
+              `¿Eliminar "${existing.tipo}"? Esta acción no se puede deshacer.`,
+              { danger: true, confirmLabel: 'Eliminar' }
+            );
             if (ok) {
               DB.deleteItem(existing.id);
               Modal.close();

@@ -36,7 +36,7 @@ const UI = (() => {
     if (state.search.trim()) {
       const q = state.search.trim().toLowerCase();
       filtered = filtered.filter(({ it }) =>
-        [it.tipo, it.marca, it.modelo, it.lugar].some(v => (v || '').toLowerCase().includes(q))
+        [it.tipo, it.marca, it.modelo, it.lugar, it.notas].some(v => (v || '').toLowerCase().includes(q))
       );
     }
 
@@ -46,7 +46,9 @@ const UI = (() => {
       fechaDesc: (a, b) => (b.it.fecha || '').localeCompare(a.it.fecha || ''),
       fechaAsc: (a, b) => (a.it.fecha || '').localeCompare(b.it.fecha || ''),
       precioDesc: (a, b) => b.it.precio - a.it.precio,
-      alfabetico: (a, b) => a.it.tipo.localeCompare(b.it.tipo)
+      alfabetico: (a, b) => a.it.tipo.localeCompare(b.it.tipo),
+      // Items sin usos configurados van al final (costoPorUso = null → -1)
+      costoPorUsoDesc: (a, b) => (b.d.costoPorUso ?? -1) - (a.d.costoPorUso ?? -1)
     };
     filtered.sort(sorters[state.sort] || sorters.costoMensualDesc);
     return filtered;
@@ -62,6 +64,13 @@ const UI = (() => {
     const costoMensualActivo = activos.reduce((s, x) => s + x.d.costoMensual, 0);
     const totalInvertido = items.reduce((s, x) => s + Number(x.precio || 0), 0);
     const promedioDias = activos.length ? activos.reduce((s, x) => s + x.d.dias, 0) / activos.length : 0;
+
+    // Usos por mes estimados para objetos activos con frecuencia configurada
+    const conUsos = activos.filter(x => x.d.costoPorUso != null);
+    const usosMes = Math.round(conUsos.reduce((s, x) => {
+      const perDias = { semana: 7, mes: 30, año: 365 }[x.it.usosPeriodo] || 7;
+      return s + Number(x.it.usosFrequencia || 0) * (30 / perDias);
+    }, 0));
 
     document.getElementById('kpi-row').innerHTML = `
       <div class="kpi-card kpi-hero">
@@ -79,6 +88,12 @@ const UI = (() => {
         <div class="kpi-value">${Calc.humanizeDays(Math.round(promedioDias))}</div>
         <div class="kpi-sub">objetos en uso</div>
       </div>
+      ${conUsos.length ? `
+      <div class="kpi-card">
+        <div class="kpi-label">Usos / mes</div>
+        <div class="kpi-value">${usosMes}</div>
+        <div class="kpi-sub">${conUsos.length} objeto${conUsos.length===1?'':'s'} con usos</div>
+      </div>` : ''}
       <div class="kpi-card">
         <div class="kpi-label">Retirados</div>
         <div class="kpi-value">${retirados.length}</div>
@@ -124,7 +139,7 @@ const UI = (() => {
       bottomInfo = `Usado ${d.antiguedadTexto} · retirado ${Calc.formatDate(it.finDeUso)}${it.motivo ? ' · ' + esc(it.motivo) : ''}`;
     }
 
-    // Label secundario del costo: neto o nuevo
+    // Label secundario del costo
     let costoLabel = 'por mes';
     let costoSecundario = '';
     if (d.vendido) {
@@ -132,7 +147,13 @@ const UI = (() => {
       costoSecundario = `<div class="item-cost-secondary">bruto ${Calc.formatGs(d.costoMensualBruto)}</div>`;
     } else if (d.nuevo && d.activo) {
       costoLabel = 'por mes';
-      costoSecundario = `<div class="item-cost-nuevo">reciente · menos de 30 días</div>`;
+      costoSecundario = `<div class="item-cost-nuevo">reciente · &lt;30 días</div>`;
+    }
+    // Costo por uso: se agrega debajo si el item tiene frecuencia configurada
+    if (d.costoPorUso != null) {
+      const periodLabel = { semana: 'sem', mes: 'mes', año: 'año' }[it.usosPeriodo] || 'sem';
+      const usosLabel = it.usosFrequencia + '×/' + periodLabel;
+      costoSecundario += `<div class="item-cost-uso">${Calc.formatGs(d.costoPorUso)}/uso <span class="uso-freq-badge">${usosLabel}</span></div>`;
     }
 
     return `
@@ -224,19 +245,35 @@ const UI = (() => {
     const totalInvertido = items.reduce((s, x) => s + Number(x.precio || 0), 0);
     const promedioPorObjeto = activos.length ? costoMensualActivo / activos.length : 0;
 
+    // Items con usos configurados
+    const conUsos = activos.filter(x => x.d.costoPorUso != null);
+    const totalUsosMes = conUsos.reduce((s, x) => {
+      const perDias = { semana: 7, mes: 30, año: 365 }[x.it.usosPeriodo] || 7;
+      return s + Number(x.it.usosFrequencia || 0) * (30 / perDias);
+    }, 0);
+
     document.getElementById('kpi-row-stats').innerHTML = `
       <div class="kpi-card kpi-hero">
         <div class="kpi-label">Costo mensual activo</div>
         <div class="kpi-value">${Calc.formatGs(costoMensualActivo)}</div>
+        <div class="kpi-sub">${activos.length} objeto${activos.length === 1 ? '' : 's'} en uso</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Invertido total</div>
         <div class="kpi-value">${Calc.formatGs(totalInvertido)}</div>
+        <div class="kpi-sub">${items.length} objetos en total</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-label">Promedio / objeto</div>
         <div class="kpi-value">${Calc.formatGs(promedioPorObjeto)}</div>
+        <div class="kpi-sub">objetos activos</div>
       </div>
+      ${conUsos.length ? `
+      <div class="kpi-card">
+        <div class="kpi-label">Usos / mes</div>
+        <div class="kpi-value">${Math.round(totalUsosMes)}</div>
+        <div class="kpi-sub">${conUsos.length} objeto${conUsos.length === 1 ? '' : 's'} con usos</div>
+      </div>` : ''}
     `;
 
     Charts.destroyAll();
@@ -244,6 +281,39 @@ const UI = (() => {
     Charts.renderTop('chart-top', items);
     Charts.renderAnual('chart-anual', items);
 
+    // ---------- Sección costo por uso ----------
+    const usoBlock = document.getElementById('stat-uso-block');
+    const usoList = document.getElementById('uso-list');
+    if (conUsos.length === 0) {
+      usoBlock.classList.add('hidden');
+    } else {
+      usoBlock.classList.remove('hidden');
+      const sorted = [...conUsos].sort((a, b) => b.d.costoPorUso - a.d.costoPorUso);
+      const maxCpu = sorted[0].d.costoPorUso;
+      usoList.innerHTML = sorted.map(({ it, d }) => {
+        const pct = maxCpu > 0 ? Math.max(4, Math.min(100, (d.costoPorUso / maxCpu) * 100)) : 0;
+        const barColor = pct >= 66 ? 'var(--accent-high)' : pct >= 33 ? 'var(--accent-mid)' : 'var(--accent-low)';
+        const periodoLabel = { semana: 'sem', mes: 'mes', año: 'año' }[it.usosPeriodo] || 'sem';
+        return `
+          <div class="uso-stat-row" data-id="${it.id}" style="cursor:pointer">
+            <div class="uso-stat-top">
+              <span class="uso-stat-name">${esc(it.tipo)}${it.marca ? ' <span class="uso-stat-brand">· ' + esc(it.marca) + '</span>' : ''}</span>
+              <span class="uso-stat-cpu">${Calc.formatGs(d.costoPorUso)}<span class="uso-stat-label">/uso</span></span>
+            </div>
+            <div class="cost-bar-track"><div class="cost-bar-fill" style="width:${pct}%;background:${barColor}"></div></div>
+            <div class="uso-stat-sub">${it.usosFrequencia}×/${periodoLabel} · ~${d.usosEstimados} usos totales · ${Calc.formatGs(d.costoMensual)}/mes</div>
+          </div>
+        `;
+      }).join('');
+      usoList.querySelectorAll('.uso-stat-row[data-id]').forEach(row => {
+        row.addEventListener('click', () => {
+          const item = DB.getItems().find(i => i.id === row.dataset.id);
+          if (item) ItemForm.open(item);
+        });
+      });
+    }
+
+    // ---------- Historial de retirados ----------
     const retiredList = document.getElementById('retired-list');
     if (retirados.length === 0) {
       retiredList.innerHTML = '<p class="hint">Todavía no retiraste ningún objeto.</p>';
@@ -251,15 +321,24 @@ const UI = (() => {
       retiredList.innerHTML = retirados
         .sort((a, b) => (b.it.finDeUso || '').localeCompare(a.it.finDeUso || ''))
         .map(({ it, d }) => {
-          let extra = '';
+          const lines = [];
+          lines.push(`Usado ${d.antiguedadTexto}`);
+          if (it.motivo) lines.push(esc(it.motivo));
           if (d.vendido) {
-            // costoMensual ya ES el neto cuando hay precio de venta
-            extra = ` · recuperaste ${Calc.formatGs(it.precioVenta)} · costo neto ${Calc.formatGs(d.costoMensual)}/mes (bruto ${Calc.formatGs(d.costoMensualBruto)}/mes)`;
+            lines.push(`recuperaste ${Calc.formatGs(it.precioVenta)}`);
+          }
+          const costoMes = d.vendido
+            ? `${Calc.formatGs(d.costoMensual)}/mes neto (${Calc.formatGs(d.costoMensualBruto)}/mes bruto)`
+            : `${Calc.formatGs(d.costoMensual)}/mes`;
+          lines.push(costoMes);
+          if (d.costoPorUso != null) {
+            const periodoLabel = { semana: 'sem', mes: 'mes', año: 'año' }[it.usosPeriodo] || 'sem';
+            lines.push(`${Calc.formatGs(d.costoPorUso)}/uso (${it.usosFrequencia}×/${periodoLabel} · ~${d.usosEstimados} usos)`);
           }
           return `
             <div class="retired-row">
               <div class="r-title">${esc(it.tipo)}${it.marca ? ' · ' + esc(it.marca) : ''}</div>
-              <div class="r-detail">Usado ${d.antiguedadTexto} · costaba ${Calc.formatGs(d.costoMensual)}/mes${it.motivo ? ' · ' + esc(it.motivo) : ''}${extra}</div>
+              <div class="r-detail">${lines.join(' · ')}</div>
             </div>
           `;
         }).join('');

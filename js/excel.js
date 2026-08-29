@@ -4,7 +4,8 @@
 const Backup = (() => {
   const COLUMNS = [
     'Objeto', 'Marca', 'Modelo', 'Categoría', 'Fecha de compra', 'Lugar',
-    'Precio', 'Fin de uso', 'Motivo', 'Precio de venta', 'Notas'
+    'Precio', 'Fin de uso', 'Motivo', 'Precio de venta', 'Notas',
+    'Usos por período', 'Período de usos'
   ];
 
   function itemsToRows(items, categories) {
@@ -21,7 +22,9 @@ const Backup = (() => {
       'Fin de uso': it.finDeUso || '',
       'Motivo': it.motivo || '',
       'Precio de venta': it.precioVenta != null ? it.precioVenta : '',
-      'Notas': it.notas || ''
+      'Notas': it.notas || '',
+      'Usos por período': it.usosFrequencia != null ? it.usosFrequencia : '',
+      'Período de usos': it.usosFrequencia != null ? (it.usosPeriodo || 'semana') : ''
     }));
   }
 
@@ -37,7 +40,8 @@ const Backup = (() => {
     const ws = XLSX.utils.json_to_sheet(rows, { header: COLUMNS });
     ws['!cols'] = [
       { wch: 20 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 14 },
-      { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 24 }
+      { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 24 },
+      { wch: 14 }, { wch: 14 }
     ];
     XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
 
@@ -127,7 +131,9 @@ const Backup = (() => {
                 finDeUso: excelDateToISO(r['Fin de uso']),
                 motivo: String(r['Motivo'] || '').trim(),
                 precioVenta: r['Precio de venta'] !== '' && r['Precio de venta'] != null ? Number(r['Precio de venta']) : null,
-                notas: String(r['Notas'] || '').trim()
+                notas: String(r['Notas'] || '').trim(),
+                usosFrequencia: r['Usos por período'] !== '' && r['Usos por período'] != null ? Number(r['Usos por período']) : null,
+                usosPeriodo: r['Período de usos'] && ['semana','mes','año'].includes(String(r['Período de usos']).trim()) ? String(r['Período de usos']).trim() : 'semana'
               };
             });
 

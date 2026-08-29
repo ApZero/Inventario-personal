@@ -114,7 +114,9 @@ const DB = (() => {
       finDeUso: data.finDeUso || null,
       motivo: data.motivo || '',
       precioVenta: data.precioVenta != null && data.precioVenta !== '' ? Number(data.precioVenta) : null,
-      notas: data.notas || ''
+      notas: data.notas || '',
+      usosFrequencia: data.usosFrequencia != null ? Number(data.usosFrequencia) : null,
+      usosPeriodo: data.usosPeriodo || 'semana'
     };
     items.push(item);
     saveItems(items);
@@ -231,10 +233,20 @@ const Calc = (() => {
       : Number(item.precio);
     const costoMensual = netoGs / meses;
 
+    // Uso estimado — solo si el item tiene frecuencia configurada.
+    let usosEstimados = null;
+    let costoPorUso = null;
+    if (item.usosFrequencia) {
+      const periodoDias = { semana: 7, mes: 30, año: 365 }[item.usosPeriodo] || 7;
+      usosEstimados = Math.max(Math.round(Number(item.usosFrequencia) * (dias / periodoDias)), 1);
+      costoPorUso = netoGs / usosEstimados;
+    }
+
     return {
       dias, meses, nuevo,
       costoMensual,        // neto cuando hay precio de venta, bruto en otro caso
       costoMensualBruto,   // siempre sobre el precio de compra (para referencia)
+      usosEstimados, costoPorUso,
       vendido, activo,
       antiguedadTexto: humanizeDays(dias)
     };
