@@ -522,3 +522,145 @@ datalist { display: none; }
   margin-top: 2px;
   font-style: italic;
 }
+
+/* ===================== Uso frecuente (form) ===================== */
+.uso-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.uso-freq-input {
+  width: 72px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  font-size: 14px;
+  text-align: right;
+}
+.uso-sep { font-size: 13px; color: var(--ink-muted); }
+.uso-periodo-select {
+  flex: 1;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.field-hint {
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 4px;
+}
+
+/* ===================== Sugeridor dual-modo ===================== */
+.sug-section {
+  padding: 8px 0;
+  border-bottom: 1px solid #D9C9B0;
+}
+.sug-section:last-of-type { border-bottom: none; }
+.sug-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sug-uso-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  color: var(--accent-mid);
+}
+
+/* ===================== Item card — costo por uso ===================== */
+.item-cost-uso {
+  font-size: 11px;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-end;
+}
+.uso-freq-badge {
+  background: var(--line);
+  border-radius: 999px;
+  padding: 1px 5px;
+  font-size: 10px;
+  color: var(--ink-muted);
+}
+
+/* ===================== Uso stats (estadísticas) ===================== */
+.uso-stat-list { display: flex; flex-direction: column; gap: 10px; }
+
+.uso-stat-row {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.uso-stat-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.uso-stat-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+.uso-stat-brand {
+  font-weight: 400;
+  color: var(--ink-muted);
+}
+.uso-stat-cpu {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.uso-stat-label {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--ink-muted);
+  margin-left: 1px;
+}
+.uso-stat-sub {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 6px;
+  font-family: var(--font-mono);
+}
+
+/* ===================== Live preview bar (form) ===================== */
+.form-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: #F0EAD8;
+  border: 1px solid #D9C9B0;
+  border-radius: var(--radius-sm);
+  padding: 8px 11px;
+  margin-bottom: 14px;
+  min-height: 36px;
+}
+.form-preview:empty { display: none; }
+.prev-age  { font-size: 12px; color: var(--ink-muted); }
+.prev-cost { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--ink); }
+.prev-cpu  { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--accent-low); }
+.prev-unit { font-weight: 400; font-size: 10px; color: var(--ink-muted); margin-left: 1px; }
+.prev-sep  { color: var(--line); font-size: 12px; }
