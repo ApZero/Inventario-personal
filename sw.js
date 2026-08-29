@@ -2,7 +2,7 @@
 // IMPORTANTE: subí el número de versión (CACHE_NAME) cada vez que edites
 // la app, o el teléfono va a seguir usando la versión vieja en caché.
 
-const CACHE_NAME = 'inventario-v2';
+const CACHE_NAME = 'inventario-v3';
 
 const ASSETS = [
   './',

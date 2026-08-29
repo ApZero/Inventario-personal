@@ -43,6 +43,7 @@
         <option value="fechaAsc">Más antiguos</option>
         <option value="precioDesc">Precio ↓</option>
         <option value="alfabetico">Alfabético</option>
+        <option value="costoPorUsoDesc">Costo/uso ↓</option>
       </select>
     </section>
 
@@ -88,6 +89,11 @@
     <div class="stat-block">
       <h3>Inversión por año de compra</h3>
       <div class="chart-wrap"><canvas id="chart-anual"></canvas></div>
+    </div>
+
+    <div id="stat-uso-block" class="stat-block hidden">
+      <h3>Costo por uso</h3>
+      <div id="uso-list" class="uso-stat-list"></div>
     </div>
 
     <div class="stat-block">
